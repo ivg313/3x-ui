@@ -523,13 +523,23 @@ class HTTPUpgradeStreamSettings extends XrayCommonClass {
 }
 
 class SplitHTTPStreamSettings extends XrayCommonClass {
-    constructor(path='/', host='', headers=[] , maxUploadSize= 1, maxConcurrentUploads= 10) {
+    constructor(
+        path = '/',
+        host = '',
+        headers = [],
+        scMaxConcurrentPosts = 100,
+        scMaxEachPostBytes = 1000000,
+        scMinPostsIntervalMs = 30,
+        noSSEHeader = false,
+    ) {
         super();
         this.path = path;
         this.host = host;
         this.headers = headers;
-        this.maxUploadSize = maxUploadSize;
-        this.maxConcurrentUploads = maxConcurrentUploads;
+        this.scMaxConcurrentPosts = scMaxConcurrentPosts;
+        this.scMaxEachPostBytes = scMaxEachPostBytes;
+        this.scMinPostsIntervalMs = scMinPostsIntervalMs;
+        this.noSSEHeader = noSSEHeader;
     }
 
     addHeader(name, value) {
@@ -540,13 +550,15 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
         this.headers.splice(index, 1);
     }
 
-    static fromJson(json={}) {
+    static fromJson(json = {}) {
         return new SplitHTTPStreamSettings(
             json.path,
             json.host,
             XrayCommonClass.toHeaders(json.headers),
-            json.maxUploadSize,
-            json.maxConcurrentUploads,
+            json.scMaxConcurrentPosts,
+            json.scMaxEachPostBytes,
+            json.scMinPostsIntervalMs,
+            json.noSSEHeader,
         );
     }
 
@@ -555,8 +567,10 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
             path: this.path,
             host: this.host,
             headers: XrayCommonClass.toV2Headers(this.headers, false),
-            maxUploadSize: this.maxUploadSize,
-            maxConcurrentUploads: this.maxConcurrentUploads,
+            scMaxConcurrentPosts: this.scMaxConcurrentPosts,
+            scMaxEachPostBytes: this.scMaxEachPostBytes,
+            scMinPostsIntervalMs: this.scMinPostsIntervalMs,
+            noSSEHeader: this.noSSEHeader,
         };
     }
 }
@@ -570,7 +584,7 @@ class TlsStreamSettings extends XrayCommonClass {
                 disableSystemRoot = false,
                 enableSessionResumption = false,
                 certificates=[new TlsStreamSettings.Cert()],
-                alpn=[ALPN_OPTION.H2,ALPN_OPTION.HTTP1],
+                alpn=[ALPN_OPTION.H3,ALPN_OPTION.H2,ALPN_OPTION.HTTP1],
                 settings=new TlsStreamSettings.Settings()) {
         super();
         this.sni = serverName;
@@ -634,7 +648,17 @@ class TlsStreamSettings extends XrayCommonClass {
 }
 
 TlsStreamSettings.Cert = class extends XrayCommonClass {
-    constructor(useFile=true, certificateFile='', keyFile='', certificate='', key='', ocspStapling=3600, oneTimeLoading=false, usage=USAGE_OPTION.ENCIPHERMENT) {
+    constructor(
+        useFile = true,
+        certificateFile = '',
+        keyFile = '',
+        certificate = '',
+        key = '',
+        ocspStapling = 3600,
+        oneTimeLoading = false,
+        usage = USAGE_OPTION.ENCIPHERMENT,
+        buildChain = false,
+    ) {
         super();
         this.useFile = useFile;
         this.certFile = certificateFile;
@@ -644,6 +668,7 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
         this.ocspStapling = ocspStapling;
         this.oneTimeLoading = oneTimeLoading;
         this.usage = usage;
+        this.buildChain = buildChain
     }
 
     static fromJson(json={}) {
@@ -655,6 +680,7 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
                 json.ocspStapling,
                 json.oneTimeLoading,
                 json.usage,
+                json.buildChain,
             );
         } else {
             return new TlsStreamSettings.Cert(
@@ -664,6 +690,7 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
                 json.ocspStapling,
                 json.oneTimeLoading,
                 json.usage,
+                json.buildChain,
             );
         }
     }
@@ -676,6 +703,7 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
                 ocspStapling: this.ocspStapling,
                 oneTimeLoading: this.oneTimeLoading,
                 usage: this.usage,
+                buildChain: this.buildChain,
             };
         } else {
             return {
@@ -684,6 +712,7 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
                 ocspStapling: this.ocspStapling,
                 oneTimeLoading: this.oneTimeLoading,
                 usage: this.usage,
+                buildChain: this.buildChain,
             };
         }
     }
@@ -712,7 +741,7 @@ TlsStreamSettings.Settings = class extends XrayCommonClass {
 class XtlsStreamSettings extends XrayCommonClass {
     constructor(serverName='',
                 certificates=[new XtlsStreamSettings.Cert()],
-                alpn=[ALPN_OPTION.H2,ALPN_OPTION.HTTP1],
+                alpn=[ALPN_OPTION.H3,ALPN_OPTION.H2,ALPN_OPTION.HTTP1],
                 settings=new XtlsStreamSettings.Settings()) {
         super();
         this.sni = serverName;
@@ -892,7 +921,7 @@ class RealityStreamSettings extends XrayCommonClass {
 }
 
 RealityStreamSettings.Settings = class extends XrayCommonClass {
-    constructor(publicKey = '', fingerprint = UTLS_FINGERPRINT.UTLS_FIREFOX, serverName = '', spiderX= '/') {
+    constructor(publicKey = '', fingerprint = UTLS_FINGERPRINT.UTLS_RANDOM, serverName = '', spiderX= '/') {
         super();
         this.publicKey = publicKey;
         this.fingerprint = fingerprint;
