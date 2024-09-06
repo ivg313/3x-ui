@@ -21,13 +21,14 @@ type SubJsonService struct {
 	configJson       map[string]interface{}
 	defaultOutbounds []json_util.RawMessage
 	fragment         string
+	noise            string
 	mux              string
 
 	inboundService service.InboundService
 	SubService     *SubService
 }
 
-func NewSubJsonService(fragment string, mux string, rules string, subService *SubService) *SubJsonService {
+func NewSubJsonService(fragment string, noise string, mux string, rules string, subService *SubService) *SubJsonService {
 	var configJson map[string]interface{}
 	var defaultOutbounds []json_util.RawMessage
 	json.Unmarshal([]byte(defaultJson), &configJson)
@@ -52,10 +53,15 @@ func NewSubJsonService(fragment string, mux string, rules string, subService *Su
 		defaultOutbounds = append(defaultOutbounds, json_util.RawMessage(fragment))
 	}
 
+	if noise != "" {
+		defaultOutbounds = append(defaultOutbounds, json_util.RawMessage(noise))
+	}
+
 	return &SubJsonService{
 		configJson:       configJson,
 		defaultOutbounds: defaultOutbounds,
 		fragment:         fragment,
+		noise:            noise,
 		mux:              mux,
 		SubService:       subService,
 	}
@@ -262,13 +268,13 @@ func (s *SubJsonService) realityData(rData map[string]interface{}) map[string]in
 	rltyData["spiderX"] = "/" + random.Seq(15)
 	shortIds, ok := rData["shortIds"].([]interface{})
 	if ok && len(shortIds) > 0 {
-		rltyData["shortId"] = shortIds[random.Num(len(shortIds))].(string)
+		rltyData["shortId"] = shortIds
 	} else {
 		rltyData["shortId"] = ""
 	}
 	serverNames, ok := rData["serverNames"].([]interface{})
 	if ok && len(serverNames) > 0 {
-		rltyData["serverName"] = serverNames[random.Num(len(serverNames))].(string)
+		rltyData["serverName"] = serverNames
 	} else {
 		rltyData["serverName"] = ""
 	}
